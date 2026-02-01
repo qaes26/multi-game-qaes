@@ -82,6 +82,34 @@ io.on('connection', (socket) => {
     });
 });
 
+// --- Keep-Alive Mechanism for Render ---
+const SERVER_URL = 'https://multi-game-qaes.onrender.com';
+
+app.get('/keep-alive', (req, res) => {
+    console.log('Keep-Alive ping received.');
+    res.status(200).send('Server is awake');
+});
+
+// Self-Ping every 14 minutes (840000 ms) to prevent Render sleep (15 min limit)
+setInterval(() => {
+    const time = new Date().toLocaleTimeString();
+    console.log(`[${time}] Sending self-ping to wake server...`);
+
+    // Use standard 'https' module to avoid external dependencies
+    const https = require('https');
+    https.get(`${SERVER_URL}/keep-alive`, (resp) => {
+        if (resp.statusCode === 200) {
+            console.log(`[${time}] Self-ping successful. Server is awake.`);
+        } else {
+            console.error(`[${time}] Self-ping failed with status: ${resp.statusCode}`);
+        }
+    }).on("error", (err) => {
+        console.error(`[${time}] Self-ping error: ${err.message}`);
+    });
+
+}, 840000); // 14 minutes
+// ---------------------------------------
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     // Only log local IP if in dev mode or just always log it, but standard Render logs are fine.
